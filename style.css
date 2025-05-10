@@ -132,4 +132,49 @@ body {
 
 #restartButton:hover {
     background-color: #45a049;
+}
+
+/* 开始游戏遮罩层样式 */
+.start-game-mask {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.start-game-content {
+    text-align: center;
+    color: white;
+    padding: 20px;
+}
+
+.start-game-content h2 {
+    font-size: 32px;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.start-game-button {
+    padding: 15px 30px;
+    font-size: 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.start-game-button:hover {
+    background-color: #45a049;
+}
+
+.start-game-button:active {
+    background-color: #3d8b40;
 } 

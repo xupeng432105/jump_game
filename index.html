@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>木桩跳跃游戏</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -27,7 +27,34 @@
             <div class="countdown-mask"></div>
             <div id="countdown">3</div>
         </div>
+        <div class="start-game-mask" id="startGameMask">
+            <div class="start-game-content">
+                <h2>木桩跳跃</h2>
+                <button id="startGameButton" class="start-game-button">开始游戏</button>
+            </div>
+        </div>
     </div>
+    <audio id="bgMusic" controls loop style="display: none;">
+        <source src="sounds/bg.mp3" type="audio/mpeg">
+        Your browser does not support this audio format.
+    </audio>
+    <audio id="jumpMusic" controls style="display: none;">
+        <source src="sounds/jump.mp3" type="audio/mpeg">
+        Your browser does not support this audio format.
+    </audio>
+    <audio id="gameOverMusic" controls style="display: none;">
+        <source src="sounds/gameOver.mp3" type="audio/mpeg">
+        Your browser does not support this audio format.
+    </audio>
+    <audio id="itemPickUpMusic" controls style="display: none;">
+        <source src="sounds/item-pick-up.mp3" type="audio/mpeg">
+        Your browser does not support this audio format.
+    </audio>
+    <audio id="fallToGroundMusic" controls style="display: none;">
+        <source src="sounds/fall-to-ground.mp3" type="audio/mpeg">
+        Your browser does not support this audio format.
+    </audio>
+    
     <script src="config.js"></script>
     <script src="game.js"></script>
 </body>

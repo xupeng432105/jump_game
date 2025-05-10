@@ -81,7 +81,8 @@ const GAME_CONFIG = {
         horizontalSpeed: 2,     // 水平弹珠基础速度
         scoreThresholds: {
             vertical: 3000,     // 垂直弹珠出现所需分数
-            horizontal: 5000    // 水平弹珠出现所需分数
+            horizontal: 5000,    // 水平弹珠出现所需分数
+            multipleHorizontal: 7000, // 多个水平弹珠出现所需分数
         }
     }
 }; 

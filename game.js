@@ -9,14 +9,14 @@ class Game {
         this.score = 0;
         this.isGameOver = false;
         this.isPaused = false;
-        this.isCountingDown = true;
+        this.isCountingDown = false; // 初始时不显示倒计时
         this.countdown = 3;
         this.lastCountdownUpdate = performance.now();
         
         // 卷动速度设置
         this.normalScrollSpeed = GAME_CONFIG.game.normalScrollSpeed;
         this.fastScrollSpeed = GAME_CONFIG.game.fastScrollSpeed;
-        this.scrollSpeed = 0; // 初始时速度为0，倒计时结束后才设置正常速度
+        this.scrollSpeed = 0; // 初始时速度为0
         
         // 获取DOM元素
         this.countdownDiv = document.getElementById('countdown');
@@ -30,7 +30,10 @@ class Game {
         
         // 初始化倒计时显示
         this.countdownDiv.textContent = this.countdown;
-        this.countdownContainer.style.display = 'block';
+        this.countdownContainer.style.display = 'none';
+        
+        // 添加按钮事件监听
+        this.initButtonEvents();
         
         // 玩家属性
         this.player = {
@@ -97,11 +100,52 @@ class Game {
         this.marbleSpeed = GAME_CONFIG.marble.verticalSpeed;
         this.horizontalMarbleSpeed = GAME_CONFIG.marble.horizontalSpeed;
         
+        // 添加背景音乐
+        this.bgMusic = document.getElementById('bgMusic');
+        this.bgMusic.volume = 0.5; // 设置音量为50%
+        
+        this.jumpMusic = document.getElementById('jumpMusic');
+        this.jumpMusic.volume = 1; // 设置音量为100%
+        
+        this.gameOverMusic = document.getElementById('gameOverMusic');
+        this.gameOverMusic.volume = 1; // 设置音量为100%
+        
+        this.itemPickUpMusic = document.getElementById('itemPickUpMusic');
+        this.itemPickUpMusic.volume = 1; // 设置音量为100%
+        
+        this.fallToGroundMusic = document.getElementById('fallToGroundMusic');
+        this.fallToGroundMusic.volume = 1; // 设置音量为100%
+        
         // 初始化木桩
         this.initStumps();
         
-        // 开始游戏循环
-        this.gameLoop();
+    }
+    
+    initButtonEvents() {
+        // 暂停按钮事件
+        this.pauseButton.addEventListener('click', (e) => {
+            // 阻止事件冒泡，防止触发跳跃
+            e.stopPropagation();
+            
+            // 如果正在倒计时，不执行暂停操作
+            if (this.isCountingDown) return;
+            
+            this.togglePause();
+            if (this.isPaused) {
+                this.pauseButton.textContent = '继续';
+                this.pauseButton.classList.add('paused');
+            } else {
+                this.pauseButton.textContent = '暂停';
+                this.pauseButton.classList.remove('paused');
+            }
+        });
+        
+        // 重启按钮事件
+        this.restartButton.addEventListener('click', (e) => {
+            // 阻止事件冒泡，防止触发跳跃
+            e.stopPropagation();
+            this.restart();
+        });
     }
     
     generateStumpWidth() {
@@ -183,6 +227,11 @@ class Game {
             this.player.jumpCount++;
             // 根据跳跃次数调整跳跃速度
             this.player.velocityY = this.player.jumpVelocity * (1 + (this.player.jumpCount - 1) * 0.2);
+            // 播放跳跃音效
+            this.jumpMusic.currentTime = 0;
+            this.jumpMusic.play().catch(error => {
+                console.log('跳跃音效播放失败:', error);
+            });
         }
     }
     
@@ -202,6 +251,7 @@ class Game {
                     this.isCountingDown = false;
                     this.countdownContainer.style.display = 'none';
                     this.scrollSpeed = this.normalScrollSpeed;
+                    // this.bgMusic.play();
                 }
             }
             return;
@@ -252,11 +302,19 @@ class Game {
                                        (this.player.x <= stump.x + stump.width + 5);
             
             if (isFalling && isAtStumpLevel && hasHorizontalOverlap) {
+                if(this.player.jumping && isFalling) {
+                    // 播放落地音效
+                    this.fallToGroundMusic.currentTime = 0;
+                    // this.fallToGroundMusic.play().catch(error => {
+                    //     console.log('落地音效播放失败:', error);
+                    // });
+                }
                 this.player.y = stump.y - this.player.height;
                 this.player.velocityY = 0;
                 this.player.jumping = false;
                 this.player.jumpCount = 0;
                 onStump = true;
+                
                 break;
             }
         }
@@ -317,6 +375,12 @@ class Game {
                     this.totalFloatDuration = this.floatDuration;
                     this.isFlashing = false;
                     this.jumpKeyCount = 0;
+                    
+                    // 播放拾取物品音效
+                    this.itemPickUpMusic.currentTime = 0;
+                    this.itemPickUpMusic.play().catch(error => {
+                        console.log('拾取物品音效播放失败:', error);
+                    });
                 }
                 // 移除已收集的道具
                 this.items.splice(i, 1);
@@ -384,8 +448,19 @@ class Game {
                 // 如果分数达到垂直弹珠阈值，则生成垂直弹珠
                 const isVertical = this.score >= GAME_CONFIG.marble.scoreThresholds.vertical;
                 
-                if (isHorizontal || isVertical) {
-                    this.generateMarble(isHorizontal);
+                if (isHorizontal) {
+                    // 检查是否已经存在水平弹珠
+                    if (this.score < GAME_CONFIG.marble.scoreThresholds.multipleHorizontal) {
+                        const hasHorizontalMarble = this.marbles.some(marble => marble.isHorizontal);
+                        if (hasHorizontalMarble) {
+                            return; // 如果已经有水平弹珠，则不生成新的
+                        }
+                    }
+                    this.generateMarble(true);
+                }
+
+                if (isVertical) {
+                    this.generateMarble();
                 }
             }
             this.lastMarbleSpawnTime = currentTime;
@@ -525,6 +600,16 @@ class Game {
         this.gameOverMask.style.display = 'block';
         this.gameOver.style.display = 'block';
         
+        // 停止背景音乐
+        this.bgMusic.pause();
+        this.bgMusic.currentTime = 0;
+        
+        // 播放游戏结束音效
+        this.gameOverMusic.currentTime = 0;
+        this.gameOverMusic.play().catch(error => {
+            console.log('游戏结束音效播放失败:', error);
+        });
+        
         // 获取历史最高分
         const highScore = parseInt(localStorage.getItem('highScore') || '0');
         
@@ -555,23 +640,18 @@ class Game {
         this.gameOver.style.display = 'none';
         this.pauseText.style.display = 'none';
         
+        
         // 重置暂停按钮状态
         if (this.pauseButton) {
             this.pauseButton.textContent = '暂停';
             this.pauseButton.classList.remove('paused');
         }
         
-        // 重置倒计时状态
-        this.countdown = 3;
-        this.countdownDiv.textContent = this.countdown;
-        this.countdownContainer.style.display = 'block';
-        this.isCountingDown = true;
-        this.lastCountdownUpdate = performance.now();
-        
         // 重置游戏状态
         this.score = 0;
         this.isGameOver = false;
         this.isPaused = false;
+        this.isCountingDown = false;
         this.scrollSpeed = 0;
         this.player = {
             x: 100,
@@ -635,6 +715,7 @@ class Game {
         let attempts = 0;
         const maxAttempts = 10; // 最大尝试次数
         
+ 
         while (!validPosition && attempts < maxAttempts) {
             // 随机选择一个位置，但确保在玩家前方
             const minX = this.player.x + this.player.width + 50; // 玩家后方50像素
@@ -646,8 +727,8 @@ class Game {
                 x = minX + Math.random() * (maxX - minX);
             } else {
                 // 垂直弹珠只在右半部分生成
-                const rightHalfStart = this.canvas.width / 2;
-                x = rightHalfStart + Math.random() * (maxX - rightHalfStart);
+                const rightStart = this.canvas.width / 3 * 1;
+                x = rightStart + Math.random() * (maxX - rightStart);
             }
             
             // 检查这个位置是否与任何木桩重叠
@@ -742,53 +823,51 @@ class Game {
                obj1.y < obj2.y + obj2.height &&
                obj1.y + obj1.height > obj2.y;
     }
+    
+    startCountdown() {
+        this.isCountingDown = true;
+        this.countdownContainer.style.display = 'block';
+        this.countdown = 3;
+        this.countdownDiv.textContent = this.countdown;
+        this.lastCountdownUpdate = performance.now();
+    }
 }
 
 // 确保在 DOM 加载完成后再初始化游戏
 document.addEventListener('DOMContentLoaded', () => {
-    // 创建游戏实例
-    const game = new Game();
-    window.gameInstance = game;
+        const startGameMask = document.getElementById('startGameMask');
+        const startGameButton = document.getElementById('startGameButton');
+        // 开始游戏按钮事件
+        this.startGameButton.addEventListener('click', () => {
+            this.startGameMask.style.display = 'none';
+            // 创建游戏实例
+            const game = new Game();
+            window.gameInstance = game;
+            game.startCountdown();
+            // 开始游戏循环
+            game.gameLoop();
+        });
+    
     
     // 定义跳跃处理函数
     const handleJump = (e) => {
-        if (e.code === 'Space') {
-            e.preventDefault();
-            const game = window.gameInstance;
-            if (!game.isGameOver && !game.isPaused && !game.isCountingDown) {
-                game.jump();
-            }
+        // e.preventDefault();
+        const game = window.gameInstance;
+        if (!game.isGameOver && !game.isPaused && !game.isCountingDown) {
+            game.jump();
+            
         }
     };
     
     // 添加全局键盘事件监听
-    document.addEventListener('keydown', handleJump);
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+            handleJump(e);
+        }
+    });
     
-    // 添加暂停按钮事件监听
-    const pauseButton = document.getElementById('pauseButton');
-    if (pauseButton) {
-        pauseButton.addEventListener('click', () => {
-            const game = window.gameInstance;
-            // 如果正在倒计时，不执行暂停操作
-            if (game.isCountingDown) return;
-            
-            game.togglePause();
-            if (game.isPaused) {
-                pauseButton.textContent = '继续';
-                pauseButton.classList.add('paused');
-            } else {
-                pauseButton.textContent = '暂停';
-                pauseButton.classList.remove('paused');
-            }
-        });
-    }
-    
-    // 添加重启按钮事件监听
-    const restartButton = document.getElementById('restartButton');
-    if (restartButton) {
-        restartButton.addEventListener('click', () => {
-            const game = window.gameInstance;
-            game.restart();
-        });
-    }
+    // 添加触摸事件监听（用于手机）
+    document.addEventListener('touchstart', (e) => {
+        handleJump(e);
+    });
 }); 
